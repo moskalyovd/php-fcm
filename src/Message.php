@@ -63,6 +63,26 @@ class Message implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * addMultipleRecipients
+     *
+     * @param Recipient[] $recipients
+     * @throws \UnexpectedValueException
+     * @throws \InvalidArgumentException
+     *
+     * @return \paragraph1\phpFCM\Message
+     */
+    public function addMultipleRecipients(array $recipients = [])
+    {
+        foreach ($recipients as $recipient) {
+            if ($recipient instanceof Recipient) {
+                $this->addRecipient($recipient);
+            }
+        }
+
+        return $this;
+    }
+
     public function setNotification(Notification $notification)
     {
         $this->notification = $notification;
