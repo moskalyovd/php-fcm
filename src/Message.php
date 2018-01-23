@@ -4,6 +4,7 @@ namespace paragraph1\phpFCM;
 use paragraph1\phpFCM\Recipient\Recipient;
 use paragraph1\phpFCM\Recipient\Topic;
 use paragraph1\phpFCM\Recipient\Device;
+use paragraph1\phpFCM\Recipient\Group;
 
 /**
  * @author palbertini
@@ -47,7 +48,7 @@ class Message implements \JsonSerializable
      */
     public function addRecipient(Recipient $recipient)
     {
-        if (!$recipient instanceof Device && !$recipient instanceof Topic) {
+        if (!$recipient instanceof Device && !$recipient instanceof Topic && !$recipient instanceof Group) {
             throw new \UnexpectedValueException('currently phpFCM only supports topic and single device messages');
         }
 
@@ -59,7 +60,11 @@ class Message implements \JsonSerializable
             throw new \InvalidArgumentException('mixed recepient types are not supported by FCM');
         }
 
-        $this->recipients[] = $recipient;
+        if ($recipient instanceof Group) {
+            $this->recipients = [$recipient];
+        } else {
+            $this->recipients[] = $recipient;
+        }
         return $this;
     }
 
@@ -196,6 +201,17 @@ class Message implements \JsonSerializable
     private function createTo(array &$jsonData)
     {
         switch ($this->recipientType) {
+            case Device:: class:
+                if (count($this->recipients) === 1) {
+                    $jsonData['to'] = current($this->recipients)->getIdentifier();
+                } elseif(count($this->recipients) > 1) {
+                    $jsonData['registration_ids'] = array();
+
+                    foreach($this->recipients as $recipient) {
+                        $jsonData['registration_ids'][] = $recipient->getIdentifier();
+                    }
+                }
+                break;
             case Topic::class:
                 if (count($this->recipients) > 1) {
                     $topics = array_map(
@@ -207,16 +223,9 @@ class Message implements \JsonSerializable
                 }
                 $jsonData['to'] = sprintf('/topics/%s', current($this->recipients)->getIdentifier());
                 break;
-            default:
-                if (count($this->recipients) === 1) {
-                    $jsonData['to'] = current($this->recipients)->getIdentifier();
-                } elseif(count($this->recipients) > 1) {
-                    $jsonData['registration_ids'] = array();
-
-                    foreach($this->recipients as $recipient) {
-                        $jsonData['registration_ids'][] = $recipient->getIdentifier();
-                    }
-                }
+            case Group::class:
+                $jsonData['to'] = $this->recipients[0]->getIdentifier();
+                break;
         }
     }
 }
