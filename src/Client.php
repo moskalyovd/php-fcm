@@ -7,7 +7,7 @@ class Client implements ClientInterface
 {
     const DEFAULT_API_URL = 'https://fcm.googleapis.com/fcm/send';
     const DEVICE_GROUP_API_URL = 'https://android.googleapis.com/gcm/notification';
-    const TOPIC_SUBSCRIPTION_API_URL = 'https://iid.googleapis.com/iid/v1:batchAdd';
+    const TOPIC_MANAGMENT_API_URL = 'https://iid.googleapis.com/iid/v1:%s';
 
     /** @var string */
     private $apiKey;
@@ -184,6 +184,33 @@ class Client implements ClientInterface
      */
     public function addTopicSubscription(string $topicName, array $registrationTokens)
     {
+        return $this->manageTopicSubscription('batchAdd', $topicName, $registrationTokens);
+    }
+
+    /**
+     * removeTopicSubscription
+     *
+     * @param string $topicName
+     * @param array $registrationTokens
+     *
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    public function removeTopicSubscription(string $topicName, array $registrationTokens)
+    {
+        return $this->manageTopicSubscription('batchRemove', $topicName, $registrationTokens);
+    }
+
+    /**
+     * manageTopicSubscription
+     *
+     * @param string $type batchAdd or batchRemove
+     * @param string $topicName
+     * @param array $registrationTokens
+     *
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    private function manageTopicSubscription(string $type, string $topicName, array $registrationTokens)
+    {
         $body = [
             "to" => '/topics/' . $topicName,
             "registration_tokens" => $registrationTokens
@@ -194,8 +221,10 @@ class Client implements ClientInterface
             'Content-Type' => 'application/json'
         ];
 
-        return $this->makeRequest('POST', self::TOPIC_SUBSCRIPTION_API_URL, json_encode($body), $headers);
-    }
+        $url = sprintf(self::TOPIC_MANAGMENT_API_URL, $type);
+
+        return $this->makeRequest('POST', $url, json_encode($body), $headers);
+    } 
 
     /**
      * makeRequest
